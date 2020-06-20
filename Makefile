@@ -1,39 +1,32 @@
-.PHONY :build
+.PHONY: build
 
 build:
-	go build -o build/quoteblock.exe -v . 
+	go build -o build/quoteblock.exe -v ./
 
-.PHONY :test
-
-# test:
-# 	go test -race -timeout 30s ./...
-
-# .PHONY :test_log
-
-# test_log:
-# 	go test -v -race -timeout 30s ./...
-
-# .PHONY :run
-
-# run: test build
 run: build
-	.\quoteblock.exe
+	build/quoteblock.exe
 	
 .DUFAULT_GOAL := build
 
-.PHONY :pack
-
 pack:
-	d:\Apps\upx.exe --ultra-brute build\quoteblock.exe
+	d:\Apps\upx.exe --ultra-brute build\quoteblock*
 
-.PHONY :deploy_win
+pack_nix:
+	/cygdrive/d/apps/upx.exe --ultra-brute build\quoteblock
 
-deploy_win: test 
-	go build --ldflags "-w -s" -o build/quoteblock.exe -v ./cmd
-	d:\Apps\upx.exe --ultra-brute build\quoteblock.exe
 
-build_for_deploy:
-	go build --ldflags "-w -s" -o build/quoteblock.exe -v ./cmd 
+deploy_win: deploy_for_win pack
+
+deploy_for_win: 
+	go build --ldflags "-w -s" -o build/quoteblock.exe -v .
+
+deploy_nix: deploy_for_nix pack_nix
+
+deploy_for_nix:
+	set GOOS=linux
+	go build --ldflags "-w -s" -o build/quoteblock -v .
+
+deploy_all: deploy_for_win deploy_nix
 
 vendor:
 	go mod tidy

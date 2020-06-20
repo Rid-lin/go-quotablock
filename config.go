@@ -5,7 +5,8 @@ type configType struct {
 	fileConf string
 	userDB   string
 	passDB   string
-	hostDB   string
+	// hostDB   string
+	nameDB   string
 	typeid   string
 	typedb   string
 	logLevel int

@@ -57,12 +57,13 @@ var (
 
 func init() {
 
-	flag.StringVar(&config.typeid, "typeid", "0", "Type of identifity: 0 -by login, 1 - by IP")
-	flag.StringVar(&config.typedb, "typedb", "mysql", "Type of DB: 0 - MySQL, 1 - PostgreSQL")
+	// flag.StringVar(&config.typeid, "typeid", "0", "Type of identifity: 0 -by login, 1 - by IP")
+	flag.StringVar(&config.typedb, "typedb", "mysql", "Type of DB: 'mysql' - MySQL, 'postgres' - PostgreSQL")
 	flag.StringVar(&config.fileLog, "log", "", "File to log ")
 	flag.StringVar(&config.userDB, "u", "", "User of DB")
 	flag.StringVar(&config.passDB, "p", "", "Password of DB")
-	flag.StringVar(&config.hostDB, "h", "localhost", "host of DB")
+	// flag.StringVar(&config.hostDB, "h", "localhost", "host of DB")
+	flag.StringVar(&config.nameDB, "n", "", "name of DB")
 	flag.IntVar(&config.logLevel, "debug", 0, "Level log: 0 - silent, 1 - error, start and end, 2 - '1' + warning, 3 - '2' + read config, parse lines, request from squid 4 - '3' + access granted and denided, 5 - very many logs")
 	flag.IntVar(&config.ttl, "ttl", 300, "Defines the time after which data from the database will be updated")
 	flag.Parse()
@@ -85,7 +86,9 @@ func init() {
 
 func main() {
 
-	databaseURL := fmt.Sprintf("%v:%v@%v", config.userDB, config.passDB, config.hostDB)
+	// 	dsn := "user:password@/dbname"
+	// db, err := sql.Open("mysql", dsn)
+	databaseURL := fmt.Sprintf("%v:%v@/%v", config.userDB, config.passDB, config.nameDB)
 	db, err := newDB(config.typedb, databaseURL)
 	chk(err)
 	defer db.Close()
