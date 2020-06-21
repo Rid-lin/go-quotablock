@@ -11,40 +11,31 @@ import (
 var DESCRIPTION = `
 	Access Control (ACL) helper for Squid and [Screen Squid](https://sourceforge.net/projects/screen-squid/) 
 	Программа проверяет ip адрес или логин пользователя на вхождение в список модуля Quotas программы Screen Squid.
-	Если ip адресу или логину разрешен доступ в интернет то возвращает OK, иначе ERR message="access denied IP-addres not active" 
+	Если ip адресу или логину разрешен доступ в интернет то возвращает OK, иначе ERR message="access denied user not active" 
 	-------------------------------------------------
-	Additional parameter is "typeid". 
-	If your authorization by login, you need to set it in 0 (default).
-	If your authorization by IP, you need to set it in 1.
-
 	IMPORTANT: When you configure this script, you need to configure squid.conf.
 
 	This lines you need to add to conf:
 
 	If your authorization by login:
 
-	#acl section
-	external_acl_type e_block ttl=10 negative_ttl=10 %LOGIN %SRC /path/to/bin/go_quotablock [-typeid 0] [-typedb 0] -u login -p pass -h host_of_db [-debug 4] [-log /var/log/squid/quoteblock.log]
+	#qouta acl section
+	external_acl_type e_block ttl=10 negative_ttl=10 %LOGIN /path/to/bin/go_quotablock [-typedb mysql] -u login -p pass -h host_of_db -n name_of_db [-debug 4] [-log /var/log/squid/quoteblock.log] [-ttl 300]
 	acl a_block external e_block
 
 	If your authorization by IP address:
 
-	#acl section
-	external_acl_type e_block ttl=10 negative_ttl=10 %SRC /path/to/bin/go_quotablock -typeid 1 -typedb 1 -u login -p pass -h host_of_db [-debug 4] [-log /var/log/squid/quoteblock.log]
+	#qouta acl section
+	external_acl_type e_block ttl=10 negative_ttl=10 %SRC /path/to/bin/go_quotablock -typedb postgres -u login -p pass -h host_of_db -n name_of_db [-debug 4] [-log /var/log/squid/quoteblock.log] [-ttl 300]
 	acl a_block external e_block
-
-	For both authorization
-
-	#http rules section
-	http_access allow a_block
 
 	Input line from squid:
 		ip
+		login
 	
 	Output line send back to squid:
 		OK
 		or ERR message="xxx"
-		or BH message="xxx"
 	-------------------------------------------------	
 `
 
@@ -62,7 +53,6 @@ type configType struct {
 }
 
 var (
-	// conf     configType
 	config  configType
 	user    userType
 	rFSquid requestFromSquid
@@ -70,21 +60,30 @@ var (
 
 func init() {
 
-	// flag.StringVar(&config.typeid, "typeid", "0", "Type of identifity: 0 -by login, 1 - by IP")
-	flag.StringVar(&config.typedb, "typedb", "mysql", "Type of DB: 'mysql' - MySQL, 'postgres' - PostgreSQL")
+	flag.StringVar(&config.typedb, "typedb", "mysql", `Type of DB: 
+		'mysql' - MySQL, 
+		'postgres' - PostgreSQL`)
 	flag.StringVar(&config.fileLog, "log", "/var/log/squid/access.log", "File to log ")
 	flag.StringVar(&config.userDB, "u", "", "User of DB")
 	flag.StringVar(&config.passDB, "p", "", "Password of DB")
 	flag.StringVar(&config.hostDB, "h", "localhost", "host of DB")
 	flag.StringVar(&config.nameDB, "n", "", "name of DB")
-	flag.IntVar(&config.logLevel, "debug", 0, "Level log: 0 - silent, 1 - error, start and end, 2 - '1' + warning, 3 - '2' + read config, parse lines, request from squid 4 - '3' + access granted and denided, 5 - very many logs")
-	flag.IntVar(&config.ttl, "ttl", 300, "Defines the time after which data from the database will be updated")
+	flag.IntVar(&config.logLevel, "debug", 0, `Level log: 
+		0 - silent, 
+		1 - error, start and end, 
+		2 - error, start and end, warning, 
+		3 - error, start and end, warning, access granted and denided,
+		4 - error, start and end, warning, access granted and denided, request from squid `)
+	flag.IntVar(&config.ttl, "ttl", 300, "Defines the time after which data from the database will be updated in seconds")
 	flag.Parse()
 	if config.typedb != "mysql" || config.typedb != "postgres" {
 		chkM("Error. typedb must be 'mysql' or 'postgres'.", nil)
 	}
 	if config.userDB == "" {
 		chkM("Error. Username must be specified.", nil)
+	}
+	if config.logLevel > 4 {
+		config.logLevel = 4
 	}
 	if config.logLevel != 0 {
 		log.SetFlags(log.Ldate | log.Ltime)
@@ -93,12 +92,12 @@ func init() {
 		chkM(fmt.Sprintf("Error opening to write log file (%v): ", config.fileLog), err)
 		defer fl.Close()
 		log.SetOutput(fl)
-	} // If fileLog not used - silent mode
+	} // If logLevel not specified - silent mode
 }
 
 func main() {
 
-	// dsn := "user:password@/dbname"
+	// dsn := "user:password@(host_bd)/dbname"
 	// db, err := sql.Open("mysql", dsn)
 	databaseURL := fmt.Sprintf("%v:%v@(%v)/%v", config.userDB, config.passDB, config.hostDB, config.nameDB)
 	db, err := newDB(config.typedb, databaseURL)
@@ -110,9 +109,9 @@ func main() {
 	go store.getFromDB(&config)
 
 	for {
-		fmt.Scan(&rFSquid.login, &rFSquid.ip)
+		fmt.Scan(&rFSquid.user)
 		s := store.checkUser(rFSquid)
 		fmt.Println(s)
-		toLog(config.logLevel, 3, "quoteblock | Squid requested:", rFSquid, ". Helper respond:", s)
+		toLog(config.logLevel, 4, "quoteblock | Squid requested:", rFSquid, ". Helper respond:", s)
 	}
 }
