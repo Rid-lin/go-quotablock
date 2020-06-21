@@ -1,35 +1,44 @@
+
+# DIR - The name of the folder in which go-quotablock will be installed
+DIR = /modules/Quotas
+# PREFIX - The path where ScreenSquid will be installed
+PREFIX = /var/www/html/screensquid
+
+# The user and group that is required to start the http server
+PROXY-USER = squid
+PROXY-GROUP = squid
+
 .PHONY: build
 
 build:
-	go build -o build/quoteblock.exe -v ./
+	go build -o build/go-quotablock -v ./
 
 run: build
-	build/quoteblock.exe
+	build/go-quotablock
 	
 .DUFAULT_GOAL := build
 
-pack:
-	d:\Apps\upx.exe --ultra-brute build\quoteblock*
+install: sayhello install-copy fix-permission sayOK
 
-deploy_win: deploy_for_win pack
+install-move:
+	mv build/go-quotablock $(PREFIX)/$(DIR)/
 
-deploy_for_win: 
-	go build --ldflags "-w -s" -o build/quoteblock.exe -v .
+fix-permission:
+	chown PROXY-USER:PROXY-GROUP $(PREFIX)/$(DIR)/go-quotablock
+	chmod +x $(PREFIX)/$(DIR)/go-quotablock
 
-deploy_nix: deploy_for_nix pack_nix
+clear:
+	rm build/go-quotablock
 
-pack_nix:
-	upx --ultra-brute build/quoteblock
+uninstall:
+	rm $(PREFIX)/$(DIR)/go-quotablock
 
-deploy_for_nix:
-	powershell '$$env:GOOS = "linux"';	'go build --ldflags "-w -s" -o build/quoteblock -v .'
+sayhello:
+	@echo ''
+	@echo 'Hello! Starting install go-quotablock for Screen Squid'
+	@echo ''
 
-send_to_remote_pc:
-	sftp -b sftp.cfg root@192.168.65.155
-
-deploy_all: deploy_for_win deploy_for_nix pack
-
-vendor:
-	go mod tidy
-	go mod download
-	go mod vendor
+sayOK:
+	@echo ''
+	@echo 'go-quotablock for Screen Squid installed successfully!'
+	@echo 'Please, go to browser and type http://yourserverip/screensquid'
