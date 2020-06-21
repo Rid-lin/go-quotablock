@@ -19,7 +19,7 @@ deploy_for_win:
 deploy_nix: deploy_for_nix pack_nix
 
 pack_nix:
-	/cygdrive/d/apps/upx.exe --ultra-brute build/quoteblock
+	upx --ultra-brute build/quoteblock
 
 deploy_for_nix:
 	powershell '$$env:GOOS = "linux"';	'go build --ldflags "-w -s" -o build/quoteblock -v .'
