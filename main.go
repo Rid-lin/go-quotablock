@@ -94,12 +94,11 @@ func init() {
 		defer fl.Close()
 		log.SetOutput(fl)
 	} // If fileLog not used - silent mode
-	// conf.New(typeid, typedb, userDB, passDB, hostDB, fileLog, fileConf, logLevel, ttl)
 }
 
 func main() {
 
-	// 	dsn := "user:password@/dbname"
+	// dsn := "user:password@/dbname"
 	// db, err := sql.Open("mysql", dsn)
 	databaseURL := fmt.Sprintf("%v:%v@%v/%v", config.userDB, config.passDB, config.hostDB, config.nameDB)
 	db, err := newDB(config.typedb, databaseURL)
