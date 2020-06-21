@@ -72,7 +72,7 @@ func init() {
 
 	// flag.StringVar(&config.typeid, "typeid", "0", "Type of identifity: 0 -by login, 1 - by IP")
 	flag.StringVar(&config.typedb, "typedb", "mysql", "Type of DB: 'mysql' - MySQL, 'postgres' - PostgreSQL")
-	flag.StringVar(&config.fileLog, "log", "", "File to log ")
+	flag.StringVar(&config.fileLog, "log", "/var/log/squid/access.log", "File to log ")
 	flag.StringVar(&config.userDB, "u", "", "User of DB")
 	flag.StringVar(&config.passDB, "p", "", "Password of DB")
 	flag.StringVar(&config.hostDB, "h", "localhost", "host of DB")
@@ -86,7 +86,7 @@ func init() {
 	if config.userDB == "" {
 		chkM("Error. Username must be specified.", nil)
 	}
-	if config.fileLog != "" {
+	if config.logLevel != 0 {
 		log.SetFlags(log.Ldate | log.Ltime)
 		toLog(config.logLevel, 1, "quoteblock | Init started")
 		fl, err := os.OpenFile(config.fileLog, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
@@ -100,7 +100,7 @@ func main() {
 
 	// dsn := "user:password@/dbname"
 	// db, err := sql.Open("mysql", dsn)
-	databaseURL := fmt.Sprintf("%v:%v@%v/%v", config.userDB, config.passDB, config.hostDB, config.nameDB)
+	databaseURL := fmt.Sprintf("%v:%v@(%v)/%v", config.userDB, config.passDB, config.hostDB, config.nameDB)
 	db, err := newDB(config.typedb, databaseURL)
 	chk(err)
 	defer db.Close()
