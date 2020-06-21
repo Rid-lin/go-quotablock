@@ -4,7 +4,7 @@ DIR = /modules/Quotas
 # PREFIX - The path where ScreenSquid will be installed
 PREFIX = /var/www/html/screensquid
 
-# The user and group that is required to start the http server
+# The user and group that is required to start the proxy server
 PROXY-USER = squid
 PROXY-GROUP = squid
 
