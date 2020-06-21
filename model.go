@@ -1,9 +1,13 @@
 package main
 
-import "database/sql"
+import (
+	"database/sql"
+	"sync"
+)
 
 type storeType struct {
-	db    *sql.DB
+	db *sql.DB
+	sync.Mutex
 	users map[string]userType
 }
 
@@ -11,7 +15,7 @@ type userType struct {
 	alias  string
 	ip     string
 	login  string
-	active bool
+	active string
 }
 
 type requestFromSquid struct {
@@ -24,21 +28,20 @@ func (s *storeType) checkUser(rFSquid requestFromSquid) string {
 	// проверить текущего пользователя на вхождение в список
 	// если он есть, то ОК
 	// если нет то ЕРР
-
-	// return "OK"
-	var index string
-
-	if rFSquid.login != "" {
-		index = rFSquid.login
-	} else {
-		index = rFSquid.ip
-	}
-	if _, ok := s.users[index]; ok {
-		if s.users[index].active {
-			toLog(config.logLevel, 5, "quoteblock |", index, "- granted access, IP is active")
+	s.Mutex.Lock()
+	if _, ok := s.users[rFSquid.ip]; ok {
+		if s.users[rFSquid.ip].active == "0" {
+			toLog(config.logLevel, 5, "quoteblock |", rFSquid.ip, "- granted access, IP is active")
 			return "OK"
 		}
 	}
-	toLog(config.logLevel, 5, "quoteblock |", index, "- access denied, IP-addres not active")
-	return `ERR message="access denied, IP-addres not active"`
+	if _, ok := s.users[rFSquid.login]; ok {
+		if s.users[rFSquid.login].active == "0" {
+			toLog(config.logLevel, 5, "quoteblock |", rFSquid.login, "- granted access, IP is active")
+			return "OK"
+		}
+	}
+	s.Mutex.Unlock()
+	toLog(config.logLevel, 5, "quoteblock |", rFSquid, "- access denied, IP-addres not active")
+	return `ERR message="access denied, user not active"`
 }

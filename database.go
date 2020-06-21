@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"log"
+	"time"
 
 	_ "github.com/go-sql-driver/mysql" // ....
 
@@ -10,33 +11,39 @@ import (
 )
 
 func (s *storeType) getFromDB(config *configType) {
-
-	rows, err := s.db.Query(`SELECT a.name, l.name,a.userlogin, q.status FROM scsq_alias a 
-	JOIN scsq_ipaddress l ON a.tableid=l.id
-	JOIN scsq_mod_quotas q ON q.aliasid = a.id;`)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer rows.Close()
-	for rows.Next() {
-		user := new(userType)
-		err := rows.Scan(&user.alias, &user.ip, &user.login, &user.active)
+	ttl := time.Duration(config.ttl * 1000000)
+	for {
+		rows, err := s.db.Query(`SELECT a.name, l.name,a.userlogin, q.status FROM scsq_alias a JOIN scsq_ipaddress l ON a.tableid=l.id JOIN scsq_mod_quotas q ON q.aliasid = a.id;`)
 		if err != nil {
 			log.Fatal(err)
 		}
-		if user.login == "" {
-			s.users[user.login] = *user
+		defer rows.Close()
+		for rows.Next() {
+			var user userType
+			err := rows.Scan(&user.alias, &user.ip, &user.login, &user.active)
+			if err != nil {
+				log.Fatal(err)
+			}
+			if user.login != "" {
+				s.Mutex.Lock()
+				s.users[user.login] = user
+				s.Mutex.Unlock()
+			} else {
+				s.Mutex.Lock()
+				s.users[user.ip] = user
+				s.Mutex.Unlock()
+			}
 		}
-		s.users[user.ip] = *user
+		chkM("", err)
+		time.Sleep(ttl)
 	}
-	chkM("", err)
-
 }
 
 //New ..
 func newStore(db *sql.DB) *storeType {
 	return &storeType{
-		db: db,
+		db:    db,
+		users: make(map[string]userType),
 	}
 }
 
