@@ -24,10 +24,6 @@ type requestFromSquid struct {
 }
 
 func (s *storeType) checkUser(rFSquid requestFromSquid) string {
-	// запросить список пользователей из бд
-	// проверить текущего пользователя на вхождение в список
-	// если он есть, то ОК
-	// если нет то ЕРР
 	s.Mutex.Lock()
 	if _, ok := s.users[rFSquid.ip]; ok {
 		if s.users[rFSquid.ip].active == "0" {
