@@ -1,23 +1,35 @@
 # quoteblock
 Quota Squid Helper
 
-Access Control (ACL) helper for squid 3.4+
-
-Программа проверяет ip адрес пользователя на вхождение в список не превысивших лимит трафика.
-Если ip адрес присутсвует, то возвращает OK
-
+	Access Control (ACL) helper for Squid and [Screen Squid](https://sourceforge.net/projects/screen-squid/) 
+	Программа проверяет ip адрес или логин пользователя на вхождение в список модуля Quotas программы Screen Squid.
+	Если ip адресу или логину разрешен доступ в интернет то возвращает OK, иначе ERR message="access denied user not active" 
 	-------------------------------------------------
-	Usage in squid.conf:
-	external_acl_type quota_ip cache=0 children-max=1 ipv4 %SRC /usr/local/bin/quoteblock -l 4 -c /etc/quoteblock/quoteblock.json -f /var/log/squid/quoteblock.log
-	acl allow_to_inet external quota_ip
-	http_access allow allow_to_inet
+	IMPORTANT: When you configure this script, you need to configure squid.conf.
+
+	This lines you need to add to conf:
+
+	If your authorization by login:
+
+	#qouta acl section
+	external_acl_type e_block ttl=10 negative_ttl=10 %LOGIN /path/to/bin/go_quotablock [-typedb mysql] -u login -p pass -h host_of_db -n name_of_db [-debug 4] [-log /var/log/squid/quoteblock.log] [-ttl 300]
+	acl a_block external e_block
+
+	If your authorization by IP address:
+
+	#qouta acl section
+	external_acl_type e_block ttl=10 negative_ttl=10 %SRC /path/to/bin/go_quotablock -typedb postgres -u login -p pass -h host_of_db -n name_of_db [-debug 4] [-log /var/log/squid/quoteblock.log] [-ttl 300]
+	acl a_block external e_block
+
 	Input line from squid:
 		ip
+		login
+	
 	Output line send back to squid:
 		OK
 		or ERR message="xxx"
-		or BH message="xxx"
-	-------------------------------------------------
+	-------------------------------------------------	
+
 
 
 
